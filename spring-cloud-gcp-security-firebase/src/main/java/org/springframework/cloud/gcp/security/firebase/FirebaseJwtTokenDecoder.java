@@ -80,12 +80,16 @@ public class FirebaseJwtTokenDecoder implements JwtDecoder {
 	public Jwt decode(String token) throws JwtException {
 		SignedJWT jwt = parse(token);
 		if (isExpired()) {
-			try {
-				keysLock.tryLock();
-				refresh();
-			}
-			finally {
-				keysLock.unlock();
+			//dont put the tryLock into the try block
+			//An unlock attempt by a thread that does not hold the lock leads to an IllegalMonitorStateException 
+			//if the lock is already held by another thread at the same time.
+			if (keysLock.tryLock()){
+				try {
+					refresh();
+				}
+				finally {
+					keysLock.unlock();
+				}
 			}
 		}
 		JwtDecoder decoder = delegates.get(jwt.getHeader().getKeyID());
